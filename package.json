@@ -54,5 +54,13 @@
     "@deepseek-ai/schemastery": {
       "optional": true
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hbycwzm001/dsh-plugin-image-studio.git"
+  },
+  "homepage": "https://github.com/hbycwzm001/dsh-plugin-image-studio#readme",
+  "bugs": {
+    "url": "https://github.com/hbycwzm001/dsh-plugin-image-studio/issues"
   }
 }
