@@ -1,0 +1,10 @@
+# 生图工作台：一台 host 插件 + 一个会话顶栏标签（由 client.js 注册）
+- insert:
+    - id: image-studio
+      name: dsh-plugin-image-studio
+      config:
+        # 顶栏「生图」标签是否显示。默认 true（评估期先让你看到界面），
+        # 关掉只隐藏标签，生图能力（路由）照常工作。
+        showTab: true
+        defaultProvider: "1route"
+        timeoutMs: 600000

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<title>生图工作台 · UI 预览</title>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #ffffff; color: #1f2330;
+    display: flex; align-items: stretch;
+  }
+  #frame { flex: 1; display: flex; flex-direction: column; min-height: 560px; }
+  #bar {
+    display: flex; gap: 14px; align-items: center; padding: 0 16px; height: 42px;
+    border-bottom: 1px solid rgba(128,128,128,.22); font-size: 12.5px; color: #6b7280;
+  }
+  #bar .on { color: #111827; font-weight: 600; border-bottom: 2px solid #6366f1; height: 100%; display: flex; align-items: center; }
+  #bar .sp { flex: 1; }
+  #root { flex: 1; min-height: 0; display: flex; }
+  #root > div { width: 100%; }
+</style>
+</head>
+<body>
+  <div id="frame">
+    <div id="bar">
+      <span class="on" id="tab-shengtu">生图</span>
+      <span id="tab-video">视频画布</span>
+      <span>解析</span>
+      <span class="sp"></span>
+      <span>预览模式（假数据）</span>
+    </div>
+    <div id="root"></div>
+  </div>
+
+  <script>
+    // 预览用 query: ?mode=setup|studio
+    const MODE = new URLSearchParams(location.search).get('mode') || 'setup';
+    const API_BASE = 'https://api.1route.dev/v1';
+
+    const json = (obj) => Promise.resolve(new Response(JSON.stringify(obj), { headers: { 'content-type': 'application/json' } }));
+    window.__mockLog = [];
+
+    window.fetch = async (url, init) => {
+      const m = String(url).match(/\/api\/image-studio\/(.+)$/);
+      const path = m ? m[1] : String(url).split('?')[0];
+      window.__mockLog.push(path + ' ' + String(url));
+      if (path.startsWith('state')) {
+        return json({
+          ok: true,
+          showTab: true,
+          outputDir: 'C:\\Users\\示例\\Desktop\\HSDGPTimg2.5',
+          defaultProvider: '1route',
+          providers: [{
+            id: '1route',
+            label: '1route.dev（预置）',
+            baseUrl: API_BASE,
+            protocol: 'openai',
+            editMode: 'auto',
+            hasKey: MODE === 'studio',
+            keyHint: MODE === 'studio' ? 'a1b2' : '',
+            models: ['gpt-image-2', 'gpt-image-2.5', 'gpt-image-2.6', 'gemini-3.1-flash-image'],
+            currency: 'CNY',
+            prices: { currency: 'CNY', models: { 'gpt-image-2': { '1K': 0.02, '2K': 0.10, '4K': 0.15 }, 'gemini-3.1-flash-image': { flat: 0.08 } } },
+            pricesFromPreset: true,
+          }, {
+            id: 'other',
+            label: '另一个中转站（示例）',
+            baseUrl: 'https://api.example.com/v1',
+            protocol: 'openai',
+            editMode: 'auto',
+            hasKey: MODE === 'studio',
+            keyHint: MODE === 'studio' ? '9f3c' : '',
+            models: ['gpt-image-1', 'flux-2-pro'],
+            currency: 'CNY',
+            prices: null,
+            pricesFromPreset: false,
+          }].slice(0, new URLSearchParams(location.search).get('one') === '1' ? 1 : 2),
+        });
+      }
+      if (path.startsWith('provider/save')) return json({ ok: true });
+      if (path.startsWith('models')) return json({ ok: true, total: 64, models: ['gpt-image-2', 'gpt-image-2.5', 'seedream-5-pro'] });
+      if (path.startsWith('prefs')) return json({ ok: true, showTab: true });
+      if (path.startsWith('usage')) {
+        return json({
+          ok: true,
+          today: { count: 7, amount: 0.26 },
+          month: { count: 41, amount: 2.14 },
+          all: { count: 88, amount: 4.02 },
+          byProvider: { '1route': { count: 80, amount: 3.62 }, other: { count: 8, amount: 0.4 } },
+          recent: [
+            { t: '2026-11-19T16:58:11.000Z', model: 'gpt-image-2', size: '1K', n: 1, amount: 0.02 },
+            { t: '2026-11-19T15:31:02.000Z', model: 'gpt-image-2.5', size: '2K', n: 1, amount: 0.1 },
+            { t: '2026-11-19T14:07:44.000Z', model: 'gemini-3.1-flash-image', size: 'auto', n: 2, amount: 0.16 },
+          ],
+        });
+      }
+      if (path.startsWith('video/run')) {
+        return json({
+          ok: true, providerId: '1route', model: 'seedance-2.5-flex-720p', taskId: 'task-demo',
+          path: 'C:\\Users\\示例\\Desktop\\HSDvideo\\vid-20261120130000-demo.mp4',
+          remoteUrl: '', ms: 74000, cost: { known: true, amount: 7, basis: 'per-clip', currency: 'CNY' },
+        });
+      }
+      if (path.startsWith('generate')) {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#dfe6ff"/><stop offset="1" stop-color="#ffe9d6"/></linearGradient></defs><rect width="640" height="640" fill="url(#g)"/><circle cx="320" cy="300" r="96" fill="#fff" opacity=".55"/><text x="320" y="470" font-family="sans-serif" font-size="26" fill="#7b8194" text-anchor="middle">示例结果图</text></svg>';
+        return json({
+          ok: true, providerId: '1route', model: 'gpt-image-2', mode: 'generate', ms: 8421,
+          images: [{ dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg), savedPath: '~/.dsh/image-studio/outputs/img-20261119-170812-1.png' }],
+          cost: { known: true, unit: 0.02, amount: 0.02, count: 1, currency: 'CNY', basis: 'pricelist' },
+        });
+      }
+      return json({ ok: false, error: 'preview: unknown path ' + path });
+    };
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+
+  <script>
+    const captured = {};
+    window.__IMG_STUDIO_DEBUG = true;
+    const WANT_TAB = new URLSearchParams(location.search).get('tab') || '';
+    if (new URLSearchParams(location.search).get('float') === '1') {
+      try { localStorage.setItem('dsh-image-studio:float-button', '1'); } catch (e) { /* noop */ }
+    }
+    if (WANT_TAB === 'video') {
+      try { localStorage.setItem('dsh-image-studio:video-tab-visible:v2', '1'); } catch (e) { /* noop */ }
+      const lk = document.createElement('link');
+      lk.rel = 'stylesheet';
+      lk.href = './vendor/xyflow.css';
+      document.head.appendChild(lk);
+    }
+    window.__ModuleLoader__ = { load: (mod) => { captured.mod = mod; } };
+  </script>
+  <script>
+    if (WANT_TAB === 'video' && new URLSearchParams(location.search).get('novendor') !== '1') {
+      document.write('<script src="./vendor/xyflow.global.js"><\/script>');
+    }
+  </script>
+  <script src="./client.js"></script>
+  <script>
+    (async () => {
+      const mod = captured.mod.factory((id) => (id === 'react' ? window.React : {}));
+      let Panel = null, Settings = null, VideoPanel = null, FloatComp = null;
+      mod.apply({
+        slots: {
+          inject: (name, fn) => { try { fn(); } catch (e) { console.error(e); } },
+          register: (def, Comp) => {
+            if (def.name === 'conversation.view' && def.id === 'video-canvas') VideoPanel = Comp;
+            else if (def.name === 'conversation.view') Panel = Comp;
+            if (def.name === 'settings.section') Settings = Comp;
+            if (def.name === 'shell.overlay' && def.id === 'image-studio-float') FloatComp = Comp;
+            return Comp;
+          },
+        },
+        effect: () => {},
+        locale: { register: () => {} },
+      });
+      const _q = new URLSearchParams(location.search);
+      const wantSettings = _q.get('panel') === 'settings';
+      const wantFloat = _q.get('float') === '1';
+      const Target = wantFloat ? FloatComp : (WANT_TAB === 'video' ? VideoPanel : (wantSettings ? Settings : Panel));
+      if (!Target) { document.getElementById('root').textContent = '没有注册对应面板'; return; }
+      const root = window.ReactDOM.createRoot(document.getElementById('root'));
+      root.render(window.React.createElement(Target));
+    })();
+  </script>
+</body>
+</html>
